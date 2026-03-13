@@ -1,8 +1,8 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { BrandColors } from '@/constants/theme';
-import { getAllClientes, initializeClientes, type Cliente } from '@/utils/clientesStorage';
-import { useRouter } from 'expo-router';
+import { getAllVeiculos, type Veiculo } from '@/utils/veiculosData';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import LottieView from 'lottie-react-native';
 import React, { useEffect } from 'react';
 import {
@@ -12,43 +12,40 @@ import {
   StyleSheet,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-export default function NovoChecklistScreen() {
+export default function NovoChecklistVeiculoScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const params = useLocalSearchParams();
   const slideAnim = React.useRef(new Animated.Value(500)).current;
   const fadeinAnim = React.useRef(new Animated.Value(0)).current;
-  const [clienteSelecionado, setClienteSelecionado] = React.useState<Cliente | null>(null);
-  const [clientes, setClientes] = React.useState<Cliente[]>([]);
-  const [clientesFiltrados, setClientesFiltrados] = React.useState<Cliente[]>([]);
+  const [veiculoSelecionado, setVeiculoSelecionado] = React.useState<(Veiculo & { ano?: number }) | null>(null);
+  const [veiculoTemporario, setVeiculoTemporario] = React.useState<Veiculo | null>(null);
+  const [anoSelecionado, setAnoSelecionado] = React.useState<number | null>(null);
+  const [veiculos, setVeiculos] = React.useState<Veiculo[]>([]);
+  const [veiculosFiltrados, setVeiculosFiltrados] = React.useState<Veiculo[]>([]);
   const [pesquisa, setPesquisa] = React.useState('');
   const [modalVisivel, setModalVisivel] = React.useState(false);
+  const [modalAnoVisivel, setModalAnoVisivel] = React.useState(false);
+
+  // Gerar lista de anos (últimos 30 anos)
+  const anosDisponiveis = React.useMemo(() => {
+    const anoAtual = new Date().getFullYear();
+    const anos = [];
+    for (let i = anoAtual; i >= anoAtual - 30; i--) {
+      anos.push(i);
+    }
+    return anos;
+  }, []);
 
   useEffect(() => {
-    // Carregar clientes ao montar o componente
-    const carregarClientes = async () => {
-      try {
-        await initializeClientes();
-        const clientesCarregados = await getAllClientes();
-        // Ordenar por id DESC para mostrar o mais recente primeiro
-        const clientesOrdenados = clientesCarregados.sort((a, b) => 
-          parseInt(b.id) - parseInt(a.id)
-        );
-        setClientes(clientesOrdenados);
-        setClientesFiltrados(clientesOrdenados);
-        // Definir o último cadastrado como selecionado
-        if (clientesOrdenados.length > 0) {
-          setClienteSelecionado(clientesOrdenados[0]);
-        }
-      } catch (error) {
-        console.error('Erro ao carregar clientes:', error);
-      }
-    };
-
-    carregarClientes();
+    // Carregar veículos ao montar o componente
+    const veiculosCarregados = getAllVeiculos();
+    setVeiculos(veiculosCarregados);
+    setVeiculosFiltrados(veiculosCarregados);
   }, []);
 
   useEffect(() => {
@@ -70,21 +67,33 @@ export default function NovoChecklistScreen() {
   const handlePesquisa = (texto: string) => {
     setPesquisa(texto);
     if (texto.trim() === '') {
-      setClientesFiltrados(clientes);
+      setVeiculosFiltrados(veiculos);
     } else {
-      const filtrados = clientes.filter((cliente) =>
-        cliente.nome.toLowerCase().includes(texto.toLowerCase()) ||
-        cliente.cpf.includes(texto)
+      const filtrados = veiculos.filter((veiculo) =>
+        veiculo.marca.toLowerCase().includes(texto.toLowerCase()) ||
+        veiculo.modelo.toLowerCase().includes(texto.toLowerCase())
       );
-      setClientesFiltrados(filtrados);
+      setVeiculosFiltrados(filtrados);
     }
   };
 
-  const handleSelecionarCliente = (cliente: Cliente) => {
-    setClienteSelecionado(cliente);
-    setModalVisivel(false);
-    setPesquisa('');
-    setClientesFiltrados(clientes);
+  const handleSelecionarVeiculo = (veiculo: Veiculo) => {
+    setVeiculoTemporario(veiculo);
+    setModalAnoVisivel(true);
+  };
+
+  const handleConfirmarAno = (ano: number) => {
+    if (veiculoTemporario) {
+      setVeiculoSelecionado({
+        ...veiculoTemporario,
+        ano,
+      });
+      setAnoSelecionado(ano);
+      setModalAnoVisivel(false);
+      setModalVisivel(false);
+      setPesquisa('');
+      setVeiculosFiltrados(veiculos);
+    }
   };
 
   const handleVoltar = () => {
@@ -92,12 +101,9 @@ export default function NovoChecklistScreen() {
   };
 
   const handleAvançar = () => {
-    if (clienteSelecionado) {
-      console.log('Cliente selecionado:', clienteSelecionado);
-      router.push({
-        pathname: '/novo-checklist-veiculo',
-        params: { cliente: JSON.stringify(clienteSelecionado) }
-      });
+    if (veiculoSelecionado) {
+      console.log('Veículo selecionado:', veiculoSelecionado);
+      // router.push('/novo-checklist-dados'); // decomente quando a próxima tela estiver pronta
     }
   };
 
@@ -105,7 +111,7 @@ export default function NovoChecklistScreen() {
     <ThemedView style={[styles.container, { paddingTop: insets.top }]}>
       {/* Barra de Progresso */}
       <View style={styles.progressBarContainer}>
-        <View style={[styles.progressBar, { width: '33%', backgroundColor: '#51eb7c' }]} />
+        <View style={[styles.progressBar, { width: '66%', backgroundColor: '#51eb7c' }]} />
       </View>
 
       {/* Mensagem com animação */}
@@ -117,20 +123,22 @@ export default function NovoChecklistScreen() {
             transform: [{ translateX: slideAnim }],
           },
         ]}>
-        <ThemedText style={[styles.messageText, { fontSize: 24, fontWeight: '600',margin: 16 }]}>Vamos adicionar os dados</ThemedText>
+        <ThemedText style={[styles.messageText, { fontSize: 24, fontWeight: '600', margin: 16 }]}>
+          Agora os dados do veículo
+        </ThemedText>
       </Animated.View>
 
       <ThemedView style={styles.container}>
-            {/* Espaço central para animação */}
-            <View style={styles.animationContainer}>
-              <LottieView
-                source={require('@/animated/CustomerSelect.json')}
-                autoPlay
-                loop
-                style={styles.lottie}
-              />
-            </View>
-            </ThemedView>
+        {/* Espaço central para animação */}
+        <View style={styles.animationContainer}>
+          <LottieView
+            source={require('@/animated/Car.json')}
+            autoPlay
+            loop
+            style={styles.lottie}
+          />
+        </View>
+      </ThemedView>
 
       {/* Conteúdo principal com animação */}
       <Animated.View
@@ -141,24 +149,28 @@ export default function NovoChecklistScreen() {
             transform: [{ translateX: slideAnim }],
           },
         ]}>
-        {/* Campo Cliente */}
+        {/* Campo Veículo */}
         <View style={styles.fieldContainer}>
-          <ThemedText style={[styles.fieldLabel, { fontSize: 20, fontWeight: '600' }]}>Cliente:</ThemedText>
+          <ThemedText style={[styles.fieldLabel, { fontSize: 20, fontWeight: '600' }]}>
+            Selecione o veiculo:
+          </ThemedText>
           <TouchableOpacity
             style={styles.selectButton}
             onPress={() => setModalVisivel(true)}>
             <ThemedText
               style={{
                 fontSize: 20,
-                color: clienteSelecionado ? '#242424' : '#999999',
+                color: veiculoSelecionado ? '#242424' : '#999999',
               }}>
-              {clienteSelecionado ? clienteSelecionado.nome : 'Selecione um cliente'}
+              {veiculoSelecionado
+                ? `${veiculoSelecionado.marca} ${veiculoSelecionado.modelo} (${veiculoSelecionado.ano})`
+                : 'Selecione um veículo'}
             </ThemedText>
           </TouchableOpacity>
         </View>
       </Animated.View>
 
-      {/* Modal de Pesquisa de Clientes */}
+      {/* Modal de Pesquisa de Veículos */}
       <Modal
         visible={modalVisivel}
         transparent
@@ -170,18 +182,18 @@ export default function NovoChecklistScreen() {
               onPress={() => {
                 setModalVisivel(false);
                 setPesquisa('');
-                setClientesFiltrados(clientes);
+                setVeiculosFiltrados(veiculos);
               }}
               style={styles.smallBackButton}>
               <ThemedText style={styles.smallButtonText}>← Voltar</ThemedText>
             </TouchableOpacity>
-            <ThemedText type="title" style={styles.modalTitle}>Lista de clientes</ThemedText>
+            <ThemedText type="title" style={styles.modalTitle}>Lista de veículos</ThemedText>
           </View>
 
           <View style={styles.pesquisaContainer}>
             <TextInput
               style={styles.pesquisaInput}
-              placeholder="Pesquise por nome ou CPF"
+              placeholder="Pesquise por marca ou modelo"
               placeholderTextColor="#999999"
               value={pesquisa}
               onChangeText={handlePesquisa}
@@ -190,20 +202,20 @@ export default function NovoChecklistScreen() {
           </View>
 
           <FlatList
-            data={clientesFiltrados}
+            data={veiculosFiltrados}
             keyExtractor={(item) => item.id}
             renderItem={({ item }) => (
               <TouchableOpacity
                 style={[
-                  styles.clienteItem,
-                  clienteSelecionado?.id === item.id && styles.clienteItemSelecionado,
+                  styles.veiculoItem,
+                  veiculoSelecionado?.id === item.id && styles.veiculoItemSelecionado,
                 ]}
-                onPress={() => handleSelecionarCliente(item)}>
-                <View style={styles.clienteInfo}>
-                  <ThemedText style={styles.clienteNome}>{item.nome}</ThemedText>
-                  <ThemedText style={styles.clienteCPF}>{item.cpf}</ThemedText>
+                onPress={() => handleSelecionarVeiculo(item)}>
+                <View style={styles.veiculoInfo}>
+                  <ThemedText style={styles.veiculoMarca}>{item.marca}</ThemedText>
+                  <ThemedText style={styles.veiculoModelo}>{item.modelo}</ThemedText>
                 </View>
-                {clienteSelecionado?.id === item.id && (
+                {veiculoSelecionado?.id === item.id && (
                   <ThemedText style={styles.checkmark}>✓</ThemedText>
                 )}
               </TouchableOpacity>
@@ -214,7 +226,6 @@ export default function NovoChecklistScreen() {
         </ThemedView>
       </Modal>
 
-      {/* Botões na posição inferior */}
       <View style={styles.buttonsContainer}>
         <TouchableOpacity
           style={[styles.button, styles.buttonSecondary]}
@@ -224,10 +235,10 @@ export default function NovoChecklistScreen() {
         <TouchableOpacity
           style={[
             styles.button,
-            { backgroundColor: BrandColors.primary, opacity: clienteSelecionado ? 1 : 0.5 },
+            { backgroundColor: BrandColors.primary, opacity: veiculoSelecionado ? 1 : 0.5 },
           ]}
           onPress={handleAvançar}
-          disabled={!clienteSelecionado}>
+          disabled={!veiculoSelecionado}>
           <ThemedText style={styles.buttonText}>Avançar</ThemedText>
         </TouchableOpacity>
       </View>
@@ -236,10 +247,9 @@ export default function NovoChecklistScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: {
+  container: {
     flex: 1,
     justifyContent: 'space-between',
-    //alignItems: 'center',
     paddingHorizontal: 16,
     paddingBottom: 40,
     paddingTop: 20,
@@ -314,8 +324,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: '#969694',
   },
-  button: {
+  buttonsContainer: {
+    flexDirection: 'row',
+    gap: 12,
     width: '100%',
+  },
+  button: {
+    flex: 1,
     paddingVertical: 20,
     borderRadius: 17,
     alignItems: 'center',
@@ -325,11 +340,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
     shadowRadius: 4,
-  },
-  buttonsContainer: {
-    flexDirection: 'row',
-    gap: 12,
-    width: '50%',
   },
   buttonSecondary: {
     backgroundColor: '#f0f0f0',
@@ -376,7 +386,7 @@ const styles = StyleSheet.create({
   listContainer: {
     paddingBottom: 20,
   },
-  clienteItem: {
+  veiculoItem: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -385,22 +395,22 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
   },
-  clienteItemSelecionado: {
+  veiculoItemSelecionado: {
     backgroundColor: '#f9f9f9',
     borderRadius: 8,
     marginBottom: 8,
     borderBottomWidth: 0,
   },
-  clienteInfo: {
+  veiculoInfo: {
     flex: 1,
   },
-  clienteNome: {
+  veiculoMarca: {
     fontSize: 15,
     fontWeight: '600',
     color: '#333',
     marginBottom: 4,
   },
-  clienteCPF: {
+  veiculoModelo: {
     fontSize: 13,
     color: '#999',
   },
@@ -409,6 +419,32 @@ const styles = StyleSheet.create({
     color: BrandColors.primary,
     fontWeight: 'bold',
     marginLeft: 12,
+  },
+  anosContainer: {
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+  },
+  anoItem: {
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+    borderRadius: 12,
+    marginBottom: 8,
+    backgroundColor: '#f9f9f9',
+    alignItems: 'center',
+  },
+  anoItemSelecionado: {
+    backgroundColor: BrandColors.primary,
+    borderBottomWidth: 0,
+  },
+  anoText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+  },
+  anoTextSelecionado: {
+    color: '#fff',
   },
   smallBackButton: {
     backgroundColor: '#f0f0f0',

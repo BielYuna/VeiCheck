@@ -5,15 +5,15 @@ import { adicionarCliente, atualizarCliente, deletarCliente, type Cliente } from
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -127,9 +127,11 @@ export default function ClienteDetalhesScreen() {
       style={{ flex: 1 }}
     >
       <ThemedView style={[styles.container, { paddingTop: insets.top }]}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <ThemedText style={styles.backButtonText}>← Voltar</ThemedText>
+        <View style={styles.headerContainer}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.smallBackButton}>
+            <ThemedText style={styles.smallButtonText}>← Voltar</ThemedText>
           </TouchableOpacity>
           <ThemedText type="title" style={styles.title}>
             {isEditing ? 'Novo Cliente' : 'Detalhes do Cliente'}
@@ -259,6 +261,14 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 16,
   },
+  headerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+    gap: 12,
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -342,20 +352,44 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.12,
     shadowRadius: 2,
   },
+  buttonSecondary: {
+    backgroundColor: '#f0f0f0',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    paddingHorizontal: 16,
+    flex: 0,
+  },
+  buttonSecondaryText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+  },
   buttonText: {
     fontSize: 15,
     fontWeight: '600',
     color: '#333',
   },
-  buttonSecondary: {
-    backgroundColor: '#e0e0e0',
-  },
-  buttonSecondaryText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#666',
-  },
   buttonDanger: {
     backgroundColor: '#ff4444',
+  },
+  smallBackButton: {
+    backgroundColor: '#f0f0f0',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 1,
+  },
+  smallButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
   },
 });

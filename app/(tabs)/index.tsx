@@ -17,7 +17,7 @@ export default function HomeScreen() {
       {/* Espaço central para animação */}
       <View style={styles.animationContainer}>
         <LottieView
-          source={require('@/animated/Car.json')}
+          source={require('@/animated/Initial.json')}
           autoPlay
           loop
           style={styles.lottie}
