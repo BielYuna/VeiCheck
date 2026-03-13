@@ -8,8 +8,7 @@ import React, { useEffect } from 'react';
 import {
   Animated,
   FlatList,
-  Modal,
-  StyleSheet,
+  Modal, ScrollView, StyleSheet,
   TextInput,
   TouchableOpacity,
   View
@@ -23,13 +22,14 @@ export default function NovoChecklistVeiculoScreen() {
   const slideAnim = React.useRef(new Animated.Value(500)).current;
   const fadeinAnim = React.useRef(new Animated.Value(0)).current;
   const [veiculoSelecionado, setVeiculoSelecionado] = React.useState<(Veiculo & { ano?: number }) | null>(null);
-  const [veiculoTemporario, setVeiculoTemporario] = React.useState<Veiculo | null>(null);
-  const [anoSelecionado, setAnoSelecionado] = React.useState<number | null>(null);
   const [veiculos, setVeiculos] = React.useState<Veiculo[]>([]);
-  const [veiculosFiltrados, setVeiculosFiltrados] = React.useState<Veiculo[]>([]);
-  const [pesquisa, setPesquisa] = React.useState('');
   const [modalVisivel, setModalVisivel] = React.useState(false);
-  const [modalAnoVisivel, setModalAnoVisivel] = React.useState(false);
+  const [step, setStep] = React.useState<'marcas' | 'modelos' | 'anos'>('marcas');
+  const [selectedMarca, setSelectedMarca] = React.useState<string | null>(null);
+  const [selectedModelo, setSelectedModelo] = React.useState<string | null>(null);
+  const [marcasFiltradas, setMarcasFiltradas] = React.useState<string[]>([]);
+  const [modelosFiltrados, setModelosFiltrados] = React.useState<string[]>([]);
+  const [pesquisa, setPesquisa] = React.useState('');
 
   // Gerar lista de anos (últimos 30 anos)
   const anosDisponiveis = React.useMemo(() => {
@@ -41,12 +41,30 @@ export default function NovoChecklistVeiculoScreen() {
     return anos;
   }, []);
 
+  const marcas = React.useMemo(() => {
+    const unique = [...new Set(veiculos.map(v => v.marca))];
+    return unique.sort();
+  }, [veiculos]);
+
+  const modelos = React.useMemo(() => {
+    if (!selectedMarca) return [];
+    const unique = [...new Set(veiculos.filter(v => v.marca === selectedMarca).map(v => v.modelo))];
+    return unique.sort();
+  }, [veiculos, selectedMarca]);
+
+  useEffect(() => {
+    setModelosFiltrados(modelos);
+  }, [modelos]);
+
   useEffect(() => {
     // Carregar veículos ao montar o componente
     const veiculosCarregados = getAllVeiculos();
     setVeiculos(veiculosCarregados);
-    setVeiculosFiltrados(veiculosCarregados);
   }, []);
+
+  useEffect(() => {
+    setMarcasFiltradas(marcas);
+  }, [marcas]);
 
   useEffect(() => {
     // Animação de slide da direita para esquerda
@@ -66,33 +84,65 @@ export default function NovoChecklistVeiculoScreen() {
 
   const handlePesquisa = (texto: string) => {
     setPesquisa(texto);
-    if (texto.trim() === '') {
-      setVeiculosFiltrados(veiculos);
-    } else {
-      const filtrados = veiculos.filter((veiculo) =>
-        veiculo.marca.toLowerCase().includes(texto.toLowerCase()) ||
-        veiculo.modelo.toLowerCase().includes(texto.toLowerCase())
-      );
-      setVeiculosFiltrados(filtrados);
+    if (step === 'marcas') {
+      if (texto.trim() === '') {
+        setMarcasFiltradas(marcas);
+      } else {
+        const filtradas = marcas.filter(marca =>
+          marca.toLowerCase().includes(texto.toLowerCase())
+        );
+        setMarcasFiltradas(filtradas);
+      }
+    } else if (step === 'modelos') {
+      if (texto.trim() === '') {
+        setModelosFiltrados(modelos);
+      } else {
+        const filtrados = modelos.filter(modelo =>
+          modelo.toLowerCase().includes(texto.toLowerCase())
+        );
+        setModelosFiltrados(filtrados);
+      }
     }
   };
 
-  const handleSelecionarVeiculo = (veiculo: Veiculo) => {
-    setVeiculoTemporario(veiculo);
-    setModalAnoVisivel(true);
+  const handleSelecionarMarca = (marca: string) => {
+    setSelectedMarca(marca);
+    setStep('modelos');
+    setPesquisa('');
   };
 
-  const handleConfirmarAno = (ano: number) => {
-    if (veiculoTemporario) {
-      setVeiculoSelecionado({
-        ...veiculoTemporario,
-        ano,
-      });
-      setAnoSelecionado(ano);
-      setModalAnoVisivel(false);
+  const handleSelecionarModelo = (modelo: string) => {
+    setSelectedModelo(modelo);
+    setStep('anos');
+    setPesquisa('');
+  };
+
+  const handleSelecionarAno = (ano: number) => {
+    const veiculo = veiculos.find(v => v.marca === selectedMarca && v.modelo === selectedModelo);
+    if (veiculo) {
+      setVeiculoSelecionado({ ...veiculo, ano });
       setModalVisivel(false);
+      setStep('marcas');
+      setSelectedMarca(null);
+      setSelectedModelo(null);
+    }
+  };
+
+  const handleBack = () => {
+    if (step === 'marcas') {
+      setModalVisivel(false);
+      setMarcasFiltradas(marcas);
       setPesquisa('');
-      setVeiculosFiltrados(veiculos);
+    } else if (step === 'modelos') {
+      setStep('marcas');
+      setSelectedMarca(null);
+      setMarcasFiltradas(marcas);
+      setPesquisa('');
+    } else if (step === 'anos') {
+      setStep('modelos');
+      setSelectedModelo(null);
+      setModelosFiltrados(modelos);
+      setPesquisa('');
     }
   };
 
@@ -156,7 +206,10 @@ export default function NovoChecklistVeiculoScreen() {
           </ThemedText>
           <TouchableOpacity
             style={styles.selectButton}
-            onPress={() => setModalVisivel(true)}>
+            onPress={() => {
+              setModalVisivel(true);
+              setStep('marcas');
+            }}>
             <ThemedText
               style={{
                 fontSize: 20,
@@ -170,7 +223,7 @@ export default function NovoChecklistVeiculoScreen() {
         </View>
       </Animated.View>
 
-      {/* Modal de Pesquisa de Veículos */}
+      {/* Modal de Seleção de Veículos */}
       <Modal
         visible={modalVisivel}
         transparent
@@ -179,50 +232,74 @@ export default function NovoChecklistVeiculoScreen() {
         <ThemedView style={styles.modalContainer}>
           <View style={styles.modalHeaderContainer}>
             <TouchableOpacity
-              onPress={() => {
-                setModalVisivel(false);
-                setPesquisa('');
-                setVeiculosFiltrados(veiculos);
-              }}
+              onPress={handleBack}
               style={styles.smallBackButton}>
               <ThemedText style={styles.smallButtonText}>← Voltar</ThemedText>
             </TouchableOpacity>
-            <ThemedText type="title" style={styles.modalTitle}>Lista de veículos</ThemedText>
+            <ThemedText type="title" style={styles.modalTitle}>
+              {step === 'marcas' ? 'Selecione a marca' : step === 'modelos' ? 'Selecione o modelo' : 'Selecione o ano'}
+            </ThemedText>
           </View>
 
-          <View style={styles.pesquisaContainer}>
-            <TextInput
-              style={styles.pesquisaInput}
-              placeholder="Pesquise por marca ou modelo"
-              placeholderTextColor="#999999"
-              value={pesquisa}
-              onChangeText={handlePesquisa}
-              autoFocus
+          {step !== 'anos' && (
+            <View style={styles.pesquisaContainer}>
+              <TextInput
+                style={styles.pesquisaInput}
+                placeholder={step === 'marcas' ? 'Pesquise por marca' : 'Pesquise por modelo'}
+                placeholderTextColor="#999999"
+                value={pesquisa}
+                onChangeText={handlePesquisa}
+                autoFocus
+              />
+            </View>
+          )}
+
+          {step === 'marcas' && (
+            <FlatList
+              data={marcasFiltradas}
+              keyExtractor={(item) => item}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={styles.marcaItem}
+                  onPress={() => handleSelecionarMarca(item)}>
+                  <ThemedText style={styles.marcaText}>{item}</ThemedText>
+                </TouchableOpacity>
+              )}
+              contentContainerStyle={styles.listContainer}
+              showsVerticalScrollIndicator={false}
             />
-          </View>
+          )}
 
-          <FlatList
-            data={veiculosFiltrados}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item }) => (
-              <TouchableOpacity
-                style={[
-                  styles.veiculoItem,
-                  veiculoSelecionado?.id === item.id && styles.veiculoItemSelecionado,
-                ]}
-                onPress={() => handleSelecionarVeiculo(item)}>
-                <View style={styles.veiculoInfo}>
-                  <ThemedText style={styles.veiculoMarca}>{item.marca}</ThemedText>
-                  <ThemedText style={styles.veiculoModelo}>{item.modelo}</ThemedText>
-                </View>
-                {veiculoSelecionado?.id === item.id && (
-                  <ThemedText style={styles.checkmark}>✓</ThemedText>
-                )}
-              </TouchableOpacity>
-            )}
-            contentContainerStyle={styles.listContainer}
-            showsVerticalScrollIndicator={false}
-          />
+          {step === 'modelos' && (
+            <FlatList
+              data={modelosFiltrados}
+              keyExtractor={(item) => item}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={styles.modeloItem}
+                  onPress={() => handleSelecionarModelo(item)}>
+                  <ThemedText style={styles.modeloText}>{item}</ThemedText>
+                </TouchableOpacity>
+              )}
+              contentContainerStyle={styles.listContainer}
+              showsVerticalScrollIndicator={false}
+            />
+          )}
+
+          {step === 'anos' && (
+            <ScrollView
+              contentContainerStyle={styles.anosContainer}
+              showsVerticalScrollIndicator={false}>
+              {anosDisponiveis.map((ano) => (
+                <TouchableOpacity
+                  key={ano}
+                  style={styles.anoItem}
+                  onPress={() => handleSelecionarAno(ano)}>
+                  <ThemedText style={styles.anoText}>{ano}</ThemedText>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          )}
         </ThemedView>
       </Modal>
 
@@ -419,6 +496,28 @@ const styles = StyleSheet.create({
     color: BrandColors.primary,
     fontWeight: 'bold',
     marginLeft: 12,
+  },
+  marcaItem: {
+    paddingVertical: 16,
+    paddingHorizontal: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  marcaText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+  },
+  modeloItem: {
+    paddingVertical: 16,
+    paddingHorizontal: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  modeloText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
   },
   anosContainer: {
     paddingVertical: 16,
