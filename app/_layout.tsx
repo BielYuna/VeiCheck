@@ -21,6 +21,7 @@ export default function RootLayout() {
         <Stack.Screen name="cliente-detalhes" options={{ headerShown: false }} />
         <Stack.Screen name="novo-checklist" options={{ headerShown: false }} />
         <Stack.Screen name="novo-checklist-veiculo" options={{ headerShown: false }} />
+        <Stack.Screen name="novo-checklist-placa" options={{ headerShown: false }} />
       </Stack>
       <StatusBar style="auto" />
     </ThemeProvider>

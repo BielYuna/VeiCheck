@@ -130,7 +130,7 @@ export default function ClienteDetalhesScreen() {
         <View style={styles.headerContainer}>
           <TouchableOpacity
             onPress={() => router.back()}
-            style={styles.smallBackButton}>
+            style={[styles.smallBackButton, { backgroundColor: BrandColors.primary }]}>
             <ThemedText style={styles.smallButtonText}>← Voltar</ThemedText>
           </TouchableOpacity>
           <ThemedText type="title" style={styles.title}>
@@ -357,7 +357,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E0E0E0',
     paddingHorizontal: 16,
-    flex: 0,
+    flex: 0.60,
+    justifyContent: 'center',
   },
   buttonSecondaryText: {
     fontSize: 16,

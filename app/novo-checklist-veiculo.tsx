@@ -153,7 +153,13 @@ export default function NovoChecklistVeiculoScreen() {
   const handleAvançar = () => {
     if (veiculoSelecionado) {
       console.log('Veículo selecionado:', veiculoSelecionado);
-      // router.push('/novo-checklist-dados'); // decomente quando a próxima tela estiver pronta
+      router.push({
+        pathname: '/novo-checklist-placa',
+        params: {
+          cliente: String(params.cliente ?? ''),
+          veiculo: JSON.stringify(veiculoSelecionado),
+        },
+      });
     }
   };
 
@@ -233,7 +239,7 @@ export default function NovoChecklistVeiculoScreen() {
           <View style={styles.modalHeaderContainer}>
             <TouchableOpacity
               onPress={handleBack}
-              style={styles.smallBackButton}>
+              style={[styles.smallBackButton, { backgroundColor: BrandColors.primary }]}>
               <ThemedText style={styles.smallButtonText}>← Voltar</ThemedText>
             </TouchableOpacity>
             <ThemedText type="title" style={styles.modalTitle}>

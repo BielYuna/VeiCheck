@@ -172,7 +172,7 @@ export default function NovoChecklistScreen() {
                 setPesquisa('');
                 setClientesFiltrados(clientes);
               }}
-              style={styles.smallBackButton}>
+              style={[styles.smallBackButton, { backgroundColor: BrandColors.primary }]}>
               <ThemedText style={styles.smallButtonText}>← Voltar</ThemedText>
             </TouchableOpacity>
             <ThemedText type="title" style={styles.modalTitle}>Lista de clientes</ThemedText>
