@@ -1,51 +1,40 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { BrandColors } from '@/constants/theme';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import LottieView from 'lottie-react-native';
-import React, { useEffect } from 'react';
+import React, { useContext, useEffect } from 'react';
 import {
-    Animated,
-    Keyboard,
-    StyleSheet,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Animated,
+  Keyboard,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ChecklistContext } from './context/ChecklistContext';
 
 export default function NovoChecklistPlacaScreen() {
-  const router = useRouter();
   const insets = useSafeAreaInsets();
-  const params = useLocalSearchParams();
+  const router = useRouter();
+  const { veiculo, placa, setPlaca } = useContext(ChecklistContext);
 
   const slideAnim = React.useRef(new Animated.Value(500)).current;
   const fadeinAnim = React.useRef(new Animated.Value(0)).current;
-  const [placa, setPlaca] = React.useState('');
+  const [placaLocal, setPlacaLocal] = React.useState(placa); // keep input local for controlled component
 
-  const veiculoSelecionado = React.useMemo(() => {
-    if (!params.veiculo) return null;
-    try {
-      return JSON.parse(String(params.veiculo));
-    } catch {
-      return null;
-    }
-  }, [params.veiculo]);
+  React.useEffect(() => {
+    setPlacaLocal(placa);
+  }, [placa]);
 
-  const usuarioSelecionado = React.useMemo(() => {
-    if (!params.usuario) return null;
-    try {
-      return JSON.parse(String(params.usuario));
-    } catch {
-      return null;
-    }
-  }, [params.usuario]);
+  const veiculoSelecionado = veiculo;
 
   const isPlacaValida = React.useMemo(() => {
-    const normalized = placa.trim().toUpperCase();
+    const normalized = placaLocal.trim().toUpperCase();
     const regex = /^([A-Z]{3}\d{4}|[A-Z]{3}\d[A-Z]\d{2})$/;
     return regex.test(normalized);
-  }, [placa]);
+  }, [placaLocal]);
 
   useEffect(() => {
     Animated.parallel([
@@ -69,8 +58,10 @@ export default function NovoChecklistPlacaScreen() {
   const handleAvancar = () => {
     if (!isPlacaValida) return;
 
-    console.log('Usuário:', usuarioSelecionado, 'Placa:', placa, 'Veículo:', veiculoSelecionado);
-    // router.push('/novo-checklist-dados'); // descomente quando a próxima tela estiver pronta
+    console.log('Placa:', placaLocal, 'Veículo:', veiculoSelecionado);
+    router.push({
+      pathname: '/novo-checklist-dados',
+    });
   };
 
   return (
@@ -117,15 +108,19 @@ export default function NovoChecklistPlacaScreen() {
             style={styles.input}
             placeholder="Ex: ABC1234 ou ABC1D23"
             placeholderTextColor="#999999"
-            value={placa}
-            onChangeText={(text) => setPlaca(text.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
+            value={placaLocal}
+            onChangeText={(text) => {
+              const normalized = text.toUpperCase().replace(/[^A-Z0-9]/g, '');
+              setPlacaLocal(normalized);
+              setPlaca(normalized);
+            }}
             autoCapitalize="characters"
             autoCorrect={false}
             keyboardType="default"
             returnKeyType="done"
             onSubmitEditing={Keyboard.dismiss}
           />
-          {!isPlacaValida && placa.trim().length > 0 && (
+          {!isPlacaValida && placaLocal.trim().length > 0 && (
             <ThemedText style={[styles.subtitle, { color: '#e63946' }]}>Placa inválida. Use ABC1234 ou ABC1D23.</ThemedText>
           )}
           {veiculoSelecionado && (

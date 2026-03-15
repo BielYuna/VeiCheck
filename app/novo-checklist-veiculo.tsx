@@ -2,9 +2,9 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { BrandColors } from '@/constants/theme';
 import { getAllVeiculos, type Veiculo } from '@/utils/veiculosData';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import LottieView from 'lottie-react-native';
-import React, { useEffect } from 'react';
+import React, { useContext, useEffect } from 'react';
 import {
   Animated,
   FlatList,
@@ -14,14 +14,15 @@ import {
   View
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ChecklistContext } from './context/ChecklistContext';
 
 export default function NovoChecklistVeiculoScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const params = useLocalSearchParams();
+  const { veiculo, setVeiculo } = useContext(ChecklistContext);
   const slideAnim = React.useRef(new Animated.Value(500)).current;
   const fadeinAnim = React.useRef(new Animated.Value(0)).current;
-  const [veiculoSelecionado, setVeiculoSelecionado] = React.useState<(Veiculo & { ano?: number }) | null>(null);
+  const [veiculoSelecionado, setVeiculoSelecionado] = React.useState<(Veiculo & { ano?: number }) | null>(veiculo);
   const [veiculos, setVeiculos] = React.useState<Veiculo[]>([]);
   const [modalVisivel, setModalVisivel] = React.useState(false);
   const [step, setStep] = React.useState<'marcas' | 'modelos' | 'anos'>('marcas');
@@ -30,6 +31,10 @@ export default function NovoChecklistVeiculoScreen() {
   const [marcasFiltradas, setMarcasFiltradas] = React.useState<string[]>([]);
   const [modelosFiltrados, setModelosFiltrados] = React.useState<string[]>([]);
   const [pesquisa, setPesquisa] = React.useState('');
+
+  React.useEffect(() => {
+    setVeiculoSelecionado(veiculo);
+  }, [veiculo]);
 
   // Gerar lista de anos (últimos 30 anos)
   const anosDisponiveis = React.useMemo(() => {
@@ -120,7 +125,9 @@ export default function NovoChecklistVeiculoScreen() {
   const handleSelecionarAno = (ano: number) => {
     const veiculo = veiculos.find(v => v.marca === selectedMarca && v.modelo === selectedModelo);
     if (veiculo) {
-      setVeiculoSelecionado({ ...veiculo, ano });
+      const selected = { ...veiculo, ano };
+      setVeiculoSelecionado(selected);
+      setVeiculo(selected);
       setModalVisivel(false);
       setStep('marcas');
       setSelectedMarca(null);
@@ -155,10 +162,6 @@ export default function NovoChecklistVeiculoScreen() {
       console.log('Veículo selecionado:', veiculoSelecionado);
       router.push({
         pathname: '/novo-checklist-placa',
-        params: {
-          cliente: String(params.cliente ?? ''),
-          veiculo: JSON.stringify(veiculoSelecionado),
-        },
       });
     }
   };
@@ -219,7 +222,7 @@ export default function NovoChecklistVeiculoScreen() {
             <ThemedText
               style={{
                 fontSize: 20,
-                color: veiculoSelecionado ? '#242424' : '#999999',
+                color: veiculoSelecionado ? '#242424' : '#242424',
               }}>
               {veiculoSelecionado
                 ? `${veiculoSelecionado.marca} ${veiculoSelecionado.modelo} (${veiculoSelecionado.ano})`

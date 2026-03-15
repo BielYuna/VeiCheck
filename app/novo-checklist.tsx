@@ -4,7 +4,7 @@ import { BrandColors } from '@/constants/theme';
 import { getAllClientes, initializeClientes, type Cliente } from '@/utils/clientesStorage';
 import { useRouter } from 'expo-router';
 import LottieView from 'lottie-react-native';
-import React, { useEffect } from 'react';
+import React, { useContext, useEffect } from 'react';
 import {
   Animated,
   FlatList,
@@ -15,17 +15,23 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ChecklistContext } from './context/ChecklistContext';
 
 export default function NovoChecklistScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const slideAnim = React.useRef(new Animated.Value(500)).current;
   const fadeinAnim = React.useRef(new Animated.Value(0)).current;
-  const [clienteSelecionado, setClienteSelecionado] = React.useState<Cliente | null>(null);
+  const { cliente, setCliente } = useContext(ChecklistContext);
+  const [clienteSelecionado, setClienteSelecionado] = React.useState<Cliente | null>(cliente);
   const [clientes, setClientes] = React.useState<Cliente[]>([]);
   const [clientesFiltrados, setClientesFiltrados] = React.useState<Cliente[]>([]);
   const [pesquisa, setPesquisa] = React.useState('');
   const [modalVisivel, setModalVisivel] = React.useState(false);
+
+  React.useEffect(() => {
+    setClienteSelecionado(cliente);
+  }, [cliente]);
 
   useEffect(() => {
     // Carregar clientes ao montar o componente
@@ -82,6 +88,7 @@ export default function NovoChecklistScreen() {
 
   const handleSelecionarCliente = (cliente: Cliente) => {
     setClienteSelecionado(cliente);
+    setCliente(cliente);
     setModalVisivel(false);
     setPesquisa('');
     setClientesFiltrados(clientes);
@@ -96,7 +103,6 @@ export default function NovoChecklistScreen() {
       console.log('Cliente selecionado:', clienteSelecionado);
       router.push({
         pathname: '/novo-checklist-veiculo',
-        params: { cliente: JSON.stringify(clienteSelecionado) }
       });
     }
   };
