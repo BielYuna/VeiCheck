@@ -118,7 +118,7 @@ export default function NovoChecklistFinalScreen() {
       })
       .join('\n');
 
-    return `<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">${paths}</svg>`;
+    return `<svg width="100%" height="auto" viewBox="0 0 ${width} ${height}" preserveAspectRatio="xMidYMid meet" style="display:block;max-height:80px;" xmlns="http://www.w3.org/2000/svg">${paths}</svg>`;
   };
 
   const toDataUri = async (uri: string) => {
@@ -414,7 +414,7 @@ export default function NovoChecklistFinalScreen() {
           .signature-box, .delivery-box { border: 1px solid #d1d5db; border-radius: 16px; padding: 8px; min-height: 94px; }
           .signature-box h3, .delivery-box h3 { font-size: 9px; font-weight: 800; margin-bottom: 2px; }
           .signature-note { font-size: 7px; color: #6b7280; margin-bottom: 6px; }
-          .signature-placeholder { width: 100%; height: 52px; border: 1px solid #d1d5db; border-radius: 4px; background: #f9fafb; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+          .signature-placeholder { width: 100%; min-height: 52px; border: 1px solid #d1d5db; border-radius: 4px; background: #f9fafb; padding: 4px; box-sizing: border-box; }
           .delivery-field { min-height: 66px; border: 1px solid #d1d5db; border-radius: 8px; background: #fff; padding: 8px; font-size: 9px; white-space: pre-wrap; word-break: break-word; }
         </style>
       </head>

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { PanResponder, StyleSheet, Text, View, type LayoutRectangle, type StyleProp, type ViewStyle } from 'react-native';
+import { Animated, PanResponder, StyleSheet, Text, View, type LayoutRectangle, type StyleProp, type ViewStyle } from 'react-native';
 
 export type Point = { x: number; y: number };
 
@@ -23,6 +23,11 @@ export function SignaturePad({ strokes, onChange, placeholder, style, disabled }
   const [renderStrokes, setRenderStrokes] = useState<Point[][]>(strokes);
   const onChangeRef = useRef(onChange);
   const rafRef = useRef<number | null>(null);
+
+  // Live dot shown immediately via Animated (bypasses React 19 automatic batching)
+  const liveDotX = useRef(new Animated.Value(0)).current;
+  const liveDotY = useRef(new Animated.Value(0)).current;
+  const liveDotOpacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     onChangeRef.current = onChange;
@@ -53,6 +58,10 @@ export function SignaturePad({ strokes, onChange, placeholder, style, disabled }
           cancelAnimationFrame(rafRef.current);
           rafRef.current = null;
         }
+        // Show live dot immediately via Animated.Value (bypasses React batching)
+        liveDotX.setValue(x - 1.5);
+        liveDotY.setValue(y - 1.5);
+        liveDotOpacity.setValue(1);
         setRenderStrokes([...next]);
       },
       onPanResponderMove: (evt) => {
@@ -74,6 +83,7 @@ export function SignaturePad({ strokes, onChange, placeholder, style, disabled }
           cancelAnimationFrame(rafRef.current);
           rafRef.current = null;
         }
+        liveDotOpacity.setValue(0);
         // Flush final state
         setRenderStrokes([...allStrokesRef.current]);
         currentStroke.current = [];
@@ -84,6 +94,7 @@ export function SignaturePad({ strokes, onChange, placeholder, style, disabled }
           cancelAnimationFrame(rafRef.current);
           rafRef.current = null;
         }
+        liveDotOpacity.setValue(0);
         setRenderStrokes([...allStrokesRef.current]);
         currentStroke.current = [];
         onChangeRef.current?.([...allStrokesRef.current]);
@@ -91,9 +102,7 @@ export function SignaturePad({ strokes, onChange, placeholder, style, disabled }
     });
   }, [disabled]);
 
-  // If the prop is explicitly empty (e.g. clear button), bypass local state and clear immediately
-  const displayStrokes = strokes.length === 0 ? strokes : renderStrokes;
-  const hasPoints = displayStrokes.some((stroke) => stroke.length > 0);
+  const hasPoints = renderStrokes.some((stroke) => stroke.length > 0);
 
   return (
     <View
@@ -103,13 +112,25 @@ export function SignaturePad({ strokes, onChange, placeholder, style, disabled }
       }}
       {...(panResponder ? panResponder.panHandlers : {})}
     >
+      {/* Live dot rendered via Animated to bypass React 19 batching on first touch */}
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          styles.dot,
+          {
+            opacity: liveDotOpacity,
+            left: liveDotX,
+            top: liveDotY,
+          },
+        ]}
+      />
       {!hasPoints && placeholder ? (
         <View style={styles.placeholderContainer} pointerEvents="none">
           <Text style={styles.placeholderText}>{placeholder}</Text>
         </View>
       ) : null}
 
-      {displayStrokes.map((stroke, strokeIndex) => {
+      {renderStrokes.map((stroke, strokeIndex) => {
         if (stroke.length === 0) return null;
 
         // Single isolated point — render a small dot

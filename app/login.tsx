@@ -1,4 +1,7 @@
+import { useAuth } from '@/app/context/AuthContext';
+import { initializeUsuarios, loginUsuario } from '@/utils/usuariosStorage';
 import { router } from 'expo-router';
+import LottieView from 'lottie-react-native';
 import { useRef, useState } from 'react';
 import {
   Alert,
@@ -21,6 +24,7 @@ const COLORS = {
 };
 
 export default function LoginScreen() {
+  const { setUser } = useAuth();
   const [usuario, setUsuario] = useState('');
   const [senha, setSenha] = useState('');
   const [salvarDados, setSalvarDados] = useState(false);
@@ -58,9 +62,9 @@ export default function LoginScreen() {
     ]).start();
   };
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     if (!usuario.trim()) {
-      Alert.alert('Erro', 'Por favor, digite seu usuário');
+      Alert.alert('Erro', 'Por favor, digite seu e-mail');
       return;
     }
     if (!senha.trim()) {
@@ -69,13 +73,20 @@ export default function LoginScreen() {
     }
 
     setLoading(true);
-    // Simular delay de login
-    setTimeout(() => {
-      Alert.alert('Sucesso', `Bem-vindo, ${usuario}!${salvarDados ? '\nDados salvos' : ''}`);
-      setLoading(false);
-      // Transição entre tela de login e tela inicial
+    try {
+      await initializeUsuarios();
+      const user = await loginUsuario(usuario.trim(), senha);
+      if (!user) {
+        Alert.alert('Erro', 'E-mail ou senha incorretos.');
+        return;
+      }
+      setUser(user);
       router.replace('/(tabs)');
-    }, 1500);
+    } catch {
+      Alert.alert('Erro', 'Não foi possível realizar o login. Tente novamente.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -89,14 +100,22 @@ export default function LoginScreen() {
 
         {/* Form */}
         <View style={styles.form}>
+          <LottieView
+            source={require('@/animated/register.json')}
+            autoPlay
+            loop
+            style={styles.lottie}
+          />
           {/* Input Usuário */}
           <View style={styles.inputContainer}>
             <TextInput
               style={styles.input}
-              placeholder="Usuário ou Email"
+              placeholder="E-mail"
               placeholderTextColor="#999"
               value={usuario}
               onChangeText={setUsuario}
+              keyboardType="email-address"
+              autoCapitalize="none"
               editable={!loading}
             />
           </View>
@@ -159,11 +178,11 @@ export default function LoginScreen() {
         <View style={styles.helpSection}>
           <Text style={styles.helpTitle}>Precisa de ajuda?</Text>
           <View style={styles.helpContent}>
-            <TouchableOpacity onPress={() => Alert.alert('Recuperação', 'Clique aqui para recuperar sua senha')}>
+            <TouchableOpacity onPress={() => Alert.alert('Recuperação', 'Funcionalidade em breve.')}>
               <Text style={styles.helpLink}>Esqueceu sua senha?</Text>
             </TouchableOpacity>
             <Text style={styles.separator}>•</Text>
-            <TouchableOpacity onPress={() => Alert.alert('Registro', 'Clique aqui para criar uma conta')}>
+            <TouchableOpacity onPress={() => router.push('/cadastro')}>
               <Text style={styles.helpLink}>Criar conta</Text>
             </TouchableOpacity>
           </View>
@@ -200,6 +219,12 @@ const styles = StyleSheet.create({
   },
   form: {
     gap: 16,
+  },
+  lottie: {
+    width: 180,
+    height: 180,
+    alignSelf: 'center',
+    marginBottom: 4,
   },
   inputContainer: {
     borderRadius: 12,

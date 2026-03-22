@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { AuthProvider } from './context/AuthContext';
 import { ChecklistProvider } from './context/ChecklistContext';
 
 export const unstable_settings = {
@@ -15,9 +16,11 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <ChecklistProvider>
+      <AuthProvider>
+        <ChecklistProvider>
         <Stack>
           <Stack.Screen name="login" options={{ headerShown: false }} />
+          <Stack.Screen name="cadastro" options={{ headerShown: false }} />
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
           <Stack.Screen name="cliente-detalhes" options={{ headerShown: false }} />
@@ -41,7 +44,8 @@ export default function RootLayout() {
           <Stack.Screen name= "novo-checklist-assinatura" options={{ headerShown: false }} />
         </Stack>
         <StatusBar style="auto" />
-      </ChecklistProvider>
+        </ChecklistProvider>
+      </AuthProvider>
     </ThemeProvider>
   );
 }

@@ -1,4 +1,4 @@
-import * as SQLite from 'expo-sqlite';
+import { getSharedDatabase } from './database';
 
 export interface Cliente {
   id: string;
@@ -7,9 +7,6 @@ export interface Cliente {
   telefone: string;
   endereco: string;
 }
-
-const DATABASE_NAME = 'veicheck.db';
-let db: SQLite.SQLiteDatabase | null = null;
 
 const CLIENTES_EXEMPLO: Cliente[] = [
   {
@@ -57,11 +54,7 @@ const CLIENTES_EXEMPLO: Cliente[] = [
 ];
 
 // Abrir conexão com banco de dados
-const getDatabase = async () => {
-  if (db) return db;
-  db = await SQLite.openDatabaseAsync(DATABASE_NAME);
-  return db;
-};
+const getDatabase = getSharedDatabase;
 
 // Inicializar banco de dados
 export const initializeClientes = async () => {
@@ -69,15 +62,17 @@ export const initializeClientes = async () => {
     const database = await getDatabase();
     
     // Criar tabela se não existir
-    await database.execAsync(`
-      CREATE TABLE IF NOT EXISTS clientes (
-        id TEXT PRIMARY KEY,
-        nome TEXT NOT NULL,
-        cpf TEXT NOT NULL,
-        telefone TEXT NOT NULL,
-        endereco TEXT
-      );
-    `);
+    await database.withTransactionAsync(async () => {
+      await database.runAsync(`
+        CREATE TABLE IF NOT EXISTS clientes (
+          id TEXT PRIMARY KEY,
+          nome TEXT NOT NULL,
+          cpf TEXT NOT NULL,
+          telefone TEXT NOT NULL,
+          endereco TEXT
+        )
+      `);
+    });
 
     // Verificar se há dados
     const result = await database.getFirstAsync<{ count: number }>(

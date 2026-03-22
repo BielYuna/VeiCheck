@@ -1,12 +1,19 @@
+import { useAuth } from '@/app/context/AuthContext';
+import { ProfileIconButton, ProfileMenu } from '@/components/profile-menu';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { BrandColors } from '@/constants/theme';
 import { useRouter } from 'expo-router';
 import LottieView from 'lottie-react-native';
+import { useState } from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function HomeScreen() {
   const router = useRouter();
+  const { user } = useAuth();
+  const insets = useSafeAreaInsets();
+  const [menuVisible, setMenuVisible] = useState(false);
 
   const handleNovoChecklist = () => {
     router.push('/novo-checklist');
@@ -14,6 +21,16 @@ export default function HomeScreen() {
 
   return (
     <ThemedView style={styles.container}>
+      {/* Profile icon — top left */}
+      <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
+        <ProfileIconButton
+          onPress={() => setMenuVisible(true)}
+          fotoUri={user?.fotoUri}
+          nome={user?.nome}
+        />
+      </View>
+
+      <ProfileMenu visible={menuVisible} onClose={() => setMenuVisible(false)} />
       {/* Espaço central para animação */}
       <View style={styles.animationContainer}>
         <LottieView
@@ -41,7 +58,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingBottom: 40,
-    paddingTop: 20,
+    paddingTop: 0,
+  },
+  topBar: {
+    width: '100%',
+    alignItems: 'flex-start',
+    paddingHorizontal: 4,
+    paddingBottom: 4,
   },
   animationContainer: {
     flex: 1,
