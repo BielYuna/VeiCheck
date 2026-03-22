@@ -4,12 +4,11 @@ import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { ChecklistProvider } from './context/ChecklistContext';
 
 export const unstable_settings = {
   anchor: '(tabs)',
 };
-
-import { ChecklistProvider } from './context/ChecklistContext';
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -26,6 +25,20 @@ export default function RootLayout() {
           <Stack.Screen name="novo-checklist-veiculo" options={{ headerShown: false }} />
           <Stack.Screen name="novo-checklist-placa" options={{ headerShown: false }} />
           <Stack.Screen name="novo-checklist-dados" options={{ headerShown: false }} />
+          <Stack.Screen name="novo-checklist-foto" options={{ headerShown: false }} />
+          <Stack.Screen name="novo-checklist-avarias" options={{ headerShown: false }} />
+          <Stack.Screen name="novo-checklist-foto-traseira" options={{ headerShown: false }} />
+          <Stack.Screen name="novo-checklist-avarias-traseira" options={{ headerShown: false }} />
+          <Stack.Screen name="novo-checklist-foto-lateral-direita" options={{ headerShown: false }} />
+          <Stack.Screen name="novo-checklist-avarias-lateral-direita" options={{ headerShown: false }} />
+          <Stack.Screen name="novo-checklist-foto-lateral-esquerda" options={{ headerShown: false }} />
+          <Stack.Screen name="novo-checklist-avarias-lateral-esquerda" options={{ headerShown: false }} />
+          <Stack.Screen name= "novo-checklist-foto-maleiro" options={{ headerShown: false }} />
+          <Stack.Screen name= "novo-checklist-avarias-maleiro" options={{ headerShown: false }} />
+          <Stack.Screen name= "novo-checklist-foto-odometro" options={{ headerShown: false }} />
+          <Stack.Screen name= "novo-checklist-avarias-interior" options={{ headerShown: false }} />
+          <Stack.Screen name= "novo-checklist-final" options={{ headerShown: false }} />
+          <Stack.Screen name= "novo-checklist-assinatura" options={{ headerShown: false }} />
         </Stack>
         <StatusBar style="auto" />
       </ChecklistProvider>

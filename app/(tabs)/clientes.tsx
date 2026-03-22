@@ -23,6 +23,11 @@ function ClienteItem({ cliente, onPress }: ClienteItemProps) {
         <ThemedText style={styles.clienteNome}>{cliente.nome}</ThemedText>
         <ThemedText style={styles.clienteInfo}>CPF: {cliente.cpf}</ThemedText>
         <ThemedText style={styles.clienteInfo}>Tel: {cliente.telefone}</ThemedText>
+        {cliente.endereco ? (
+          <ThemedText style={styles.clienteInfo} numberOfLines={1} ellipsizeMode="tail">
+            End: {cliente.endereco}
+          </ThemedText>
+        ) : null}
       </View>
       <View style={styles.arrow}>
         <ThemedText style={styles.arrowText}>›</ThemedText>
@@ -78,7 +83,7 @@ export default function ClientesScreen() {
       {clientes.length === 0 && !loading ? (
         <View style={styles.emptyState}>
           <ThemedText style={styles.emptyText}>Nenhum cliente cadastrado.</ThemedText>
-          <ThemedText style={styles.emptySubtext}>Toque em "Novo Cliente" para começar</ThemedText>
+          <ThemedText style={styles.emptySubtext}>Toque em &quot;Novo Cliente&quot; para começar</ThemedText>
         </View>
       ) : (
         <FlatList

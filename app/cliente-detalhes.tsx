@@ -5,15 +5,15 @@ import { adicionarCliente, atualizarCliente, deletarCliente, type Cliente } from
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -39,7 +39,7 @@ export default function ClienteDetalhesScreen() {
         const clienteParsed = JSON.parse(params.cliente as string);
         setCliente(clienteParsed);
         setIsEditing(false);
-      } catch (error) {
+      } catch {
         setIsEditing(true);
       }
     } else {

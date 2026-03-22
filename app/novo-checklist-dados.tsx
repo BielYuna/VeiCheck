@@ -78,17 +78,9 @@ export default function NovoChecklistDadosScreen() {
 
     console.log('Motivo selecionado:', motivoFinal);
 
-    // Aqui você pode navegar para a próxima tela quando ela estiver pronta.
-    // Exemplo:
-    // router.push({
-    //   pathname: '/novo-checklist-final',
-    //   params: {
-    //     cliente: String(params.cliente ?? ''),
-    //     veiculo: String(params.veiculo ?? ''),
-    //     placa: String(params.placa ?? ''),
-    //     motivo: motivoSelecionado,
-    //   },
-    // });
+    router.push({
+      pathname: '/novo-checklist-foto',
+    });
   };
 
   return (
