@@ -4,13 +4,13 @@ import { router } from 'expo-router';
 import LottieView from 'lottie-react-native';
 import { useRef, useState } from 'react';
 import {
-  Alert,
-  Animated,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
+    Alert,
+    Animated,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -178,7 +178,7 @@ export default function LoginScreen() {
         <View style={styles.helpSection}>
           <Text style={styles.helpTitle}>Precisa de ajuda?</Text>
           <View style={styles.helpContent}>
-            <TouchableOpacity onPress={() => Alert.alert('Recuperação', 'Funcionalidade em breve.')}>
+            <TouchableOpacity onPress={() => router.push('/recuperar-senha')}>
               <Text style={styles.helpLink}>Esqueceu sua senha?</Text>
             </TouchableOpacity>
             <Text style={styles.separator}>•</Text>

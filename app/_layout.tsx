@@ -21,6 +21,7 @@ export default function RootLayout() {
         <Stack>
           <Stack.Screen name="login" options={{ headerShown: false }} />
           <Stack.Screen name="cadastro" options={{ headerShown: false }} />
+          <Stack.Screen name="recuperar-senha" options={{ headerShown: false }} />
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
           <Stack.Screen name="cliente-detalhes" options={{ headerShown: false }} />
