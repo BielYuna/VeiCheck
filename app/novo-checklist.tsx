@@ -47,7 +47,13 @@ export default function NovoChecklistScreen() {
         setClientesFiltrados(clientesOrdenados);
         // Definir o último cadastrado como selecionado
         if (clientesOrdenados.length > 0) {
-          setClienteSelecionado(clientesOrdenados[0]);
+          const clienteInicial =
+            cliente && clientesOrdenados.some((item) => item.id === cliente.id)
+              ? cliente
+              : clientesOrdenados[0];
+
+          setClienteSelecionado(clienteInicial);
+          setCliente(clienteInicial);
         }
       } catch (error) {
         console.error('Erro ao carregar clientes:', error);
@@ -55,7 +61,7 @@ export default function NovoChecklistScreen() {
     };
 
     carregarClientes();
-  }, []);
+  }, [cliente, setCliente]);
 
   useEffect(() => {
     // Animação de slide da direita para esquerda
@@ -100,7 +106,7 @@ export default function NovoChecklistScreen() {
 
   const handleAvançar = () => {
     if (clienteSelecionado) {
-      console.log('Cliente selecionado:', clienteSelecionado);
+      setCliente(clienteSelecionado);
       router.push({
         pathname: '/novo-checklist-veiculo',
       });
@@ -111,7 +117,7 @@ export default function NovoChecklistScreen() {
     <ThemedView style={[styles.container, { paddingTop: insets.top }]}>
       {/* Barra de Progresso */}
       <View style={styles.progressBarContainer}>
-        <View style={[styles.progressBar, { width: '33%', backgroundColor: '#51eb7c' }]} />
+        <View style={[styles.progressBar, { width: '6%', backgroundColor: '#51eb7c' }]} />
       </View>
 
       {/* Mensagem com animação */}

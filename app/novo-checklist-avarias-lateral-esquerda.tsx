@@ -153,7 +153,7 @@ export default function NovoChecklistAvariasLateralEsquerdaScreen() {
   return (
     <ThemedView style={[styles.container, { paddingTop: insets.top }]}> 
       <View style={styles.progressBarContainer}>
-        <View style={[styles.progressBar, { width: '100%', backgroundColor: '#51eb7c' }]} />
+        <View style={[styles.progressBar, { width: '67%', backgroundColor: '#51eb7c' }]} />
       </View>
 
       <Animated.View

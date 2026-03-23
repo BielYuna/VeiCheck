@@ -6,6 +6,8 @@ export interface Cliente {
   cpf: string;
   telefone: string;
   endereco: string;
+  cidade?: string;
+  estado?: string;
 }
 
 const CLIENTES_EXEMPLO: Cliente[] = [
@@ -74,6 +76,20 @@ export const initializeClientes = async () => {
       `);
     });
 
+    // Migração: adicionar novas colunas se não existirem
+    const newColumns = [
+      'ALTER TABLE clientes ADD COLUMN cep TEXT',
+      'ALTER TABLE clientes ADD COLUMN cidade TEXT',
+      'ALTER TABLE clientes ADD COLUMN estado TEXT',
+    ];
+    for (const sql of newColumns) {
+      try {
+        await database.runAsync(sql);
+      } catch {
+        // Coluna já existe, ignorar
+      }
+    }
+
     // Verificar se há dados
     const result = await database.getFirstAsync<{ count: number }>(
       'SELECT COUNT(*) as count FROM clientes'
@@ -99,7 +115,7 @@ export const getAllClientes = async (): Promise<Cliente[]> => {
   try {
     const database = await getDatabase();
     const rows = await database.getAllAsync<Cliente>(
-      'SELECT id, nome, cpf, telefone, endereco FROM clientes ORDER BY nome ASC'
+      'SELECT id, nome, cpf, telefone, endereco, cidade, estado FROM clientes ORDER BY nome ASC'
     );
     return rows || [];
   } catch (error) {
@@ -113,7 +129,7 @@ export const getClienteById = async (id: string): Promise<Cliente | null> => {
   try {
     const database = await getDatabase();
     const cliente = await database.getFirstAsync<Cliente>(
-      'SELECT id, nome, cpf, telefone, endereco FROM clientes WHERE id = ?',
+      'SELECT id, nome, cpf, telefone, endereco, cidade, estado FROM clientes WHERE id = ?',
       [id]
     );
     return cliente || null;
@@ -130,8 +146,8 @@ export const adicionarCliente = async (cliente: Omit<Cliente, 'id'>): Promise<Cl
     const novoId = Date.now().toString();
     
     await database.runAsync(
-      'INSERT INTO clientes (id, nome, cpf, telefone, endereco) VALUES (?, ?, ?, ?, ?)',
-      [novoId, cliente.nome, cliente.cpf, cliente.telefone, cliente.endereco]
+      'INSERT INTO clientes (id, nome, cpf, telefone, endereco, cidade, estado) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [novoId, cliente.nome, cliente.cpf, cliente.telefone, cliente.endereco, cliente.cidade || null, cliente.estado || null]
     );
 
     return {
@@ -150,8 +166,8 @@ export const atualizarCliente = async (cliente: Cliente): Promise<void> => {
     const database = await getDatabase();
     
     await database.runAsync(
-      'UPDATE clientes SET nome = ?, cpf = ?, telefone = ?, endereco = ? WHERE id = ?',
-      [cliente.nome, cliente.cpf, cliente.telefone, cliente.endereco, cliente.id]
+      'UPDATE clientes SET nome = ?, cpf = ?, telefone = ?, endereco = ?, cidade = ?, estado = ? WHERE id = ?',
+      [cliente.nome, cliente.cpf, cliente.telefone, cliente.endereco, cliente.cidade || null, cliente.estado || null, cliente.id]
     );
   } catch (error) {
     console.error('Erro ao atualizar cliente:', error);

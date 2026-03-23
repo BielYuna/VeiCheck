@@ -5,12 +5,12 @@ import { useRouter } from 'expo-router';
 import LottieView from 'lottie-react-native';
 import React, { useContext, useEffect } from 'react';
 import {
-  Animated,
-  Keyboard,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-  View,
+    Animated,
+    Keyboard,
+    StyleSheet,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChecklistContext } from './context/ChecklistContext';
@@ -67,7 +67,7 @@ export default function NovoChecklistPlacaScreen() {
   return (
     <ThemedView style={[styles.container, { paddingTop: insets.top }]}> 
       <View style={styles.progressBarContainer}>
-        <View style={[styles.progressBar, { width: '100%', backgroundColor: '#51eb7c' }]} />
+        <View style={[styles.progressBar, { width: '17%', backgroundColor: '#51eb7c' }]} />
       </View>
 
       <Animated.View

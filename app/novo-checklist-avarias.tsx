@@ -133,7 +133,7 @@ export default function NovoChecklistAvariasScreen() {
   return (
     <ThemedView style={[styles.container, { paddingTop: insets.top }]}> 
       <View style={styles.progressBarContainer}>
-        <View style={[styles.progressBar, { width: '75%', backgroundColor: '#51eb7c' }]} />
+        <View style={[styles.progressBar, { width: '33%', backgroundColor: '#51eb7c' }]} />
       </View>
 
       <Animated.View

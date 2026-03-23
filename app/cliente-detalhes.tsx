@@ -1,21 +1,41 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { BrandColors } from '@/constants/theme';
+import { CIDADES_POR_UF } from '@/utils/cidadesPorUf';
 import { adicionarCliente, atualizarCliente, deletarCliente, type Cliente } from '@/utils/clientesStorage';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+const ESTADOS_BRASIL = [
+  'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA',
+  'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN',
+  'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO',
+];
+
+const normalizeText = (value: string) =>
+  value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+
+const sanitizeAndSortCities = (cities: string[]) =>
+  Array.from(new Set(cities.map((item) => item.trim()).filter(Boolean))).sort((a, b) =>
+    a.localeCompare(b, 'pt-BR')
+  );
 
 export default function ClienteDetalhesScreen() {
   const router = useRouter();
@@ -28,10 +48,15 @@ export default function ClienteDetalhesScreen() {
     cpf: '',
     telefone: '',
     endereco: '',
+    cidade: '',
+    estado: '',
   });
 
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [estadoModalVisible, setEstadoModalVisible] = useState(false);
+  const [cidadeModalVisible, setCidadeModalVisible] = useState(false);
+  const [cidadeSearch, setCidadeSearch] = useState('');
 
   useEffect(() => {
     if (params.cliente) {
@@ -46,6 +71,32 @@ export default function ClienteDetalhesScreen() {
       setIsEditing(true);
     }
   }, [params.cliente]);
+
+  const cidadesEstado = useMemo(
+    () => sanitizeAndSortCities(CIDADES_POR_UF[cliente.estado || ''] || []),
+    [cliente.estado]
+  );
+
+  useEffect(() => {
+    if (!cliente.estado) {
+      setCidadeSearch('');
+      return;
+    }
+
+    setCliente((prev) =>
+      prev.cidade && !cidadesEstado.includes(prev.cidade)
+        ? { ...prev, cidade: '' }
+        : prev
+    );
+  }, [cliente.estado, cidadesEstado]);
+
+  const cidadesFiltradas = useMemo(
+    () =>
+      cidadesEstado.filter((cidade) =>
+        normalizeText(cidade).includes(normalizeText(cidadeSearch))
+      ),
+    [cidadeSearch, cidadesEstado]
+  );
 
   const handleSave = async () => {
     if (!cliente.nome.trim() || !cliente.cpf.trim() || !cliente.telefone.trim()) {
@@ -66,6 +117,8 @@ export default function ClienteDetalhesScreen() {
           cpf: cliente.cpf,
           telefone: cliente.telefone,
           endereco: cliente.endereco,
+          cidade: cliente.cidade,
+          estado: cliente.estado,
         });
         setCliente(novoCliente);
         Alert.alert('Sucesso', 'Cliente adicionado com sucesso!');
@@ -195,7 +248,7 @@ export default function ClienteDetalhesScreen() {
                 styles.inputMultiline,
                 !isEditing && styles.inputDisabled,
               ]}
-              placeholder="Rua, número, bairro, cidade, estado"
+              placeholder="Rua, número, bairro!"
               placeholderTextColor="#999"
               value={cliente.endereco}
               onChangeText={(text) =>
@@ -207,7 +260,165 @@ export default function ClienteDetalhesScreen() {
               textAlignVertical="top"
             />
           </View>
+
+          <View style={styles.formGroup}>
+            <ThemedText style={styles.label}>Estado</ThemedText>
+            {isEditing ? (
+              <TouchableOpacity
+                style={styles.selectorInput}
+                onPress={() => setEstadoModalVisible(true)}
+                activeOpacity={0.7}
+              >
+                <ThemedText style={cliente.estado ? styles.selectorText : styles.selectorPlaceholder}>
+                  {cliente.estado || 'Selecione o estado'}
+                </ThemedText>
+                <ThemedText style={styles.selectorArrow}>▼</ThemedText>
+              </TouchableOpacity>
+            ) : (
+              <View style={[styles.input, styles.inputDisabled]}>
+                <ThemedText style={{ color: '#666', fontSize: 15 }}>
+                  {cliente.estado || '—'}
+                </ThemedText>
+              </View>
+            )}
+          </View>
+
+          <View style={styles.formGroup}>
+            <ThemedText style={styles.label}>Cidade</ThemedText>
+            {isEditing ? (
+              <TouchableOpacity
+                style={[styles.selectorInput, !cliente.estado && styles.selectorInputDisabled]}
+                onPress={() => cliente.estado && setCidadeModalVisible(true)}
+                activeOpacity={cliente.estado ? 0.7 : 0.5}
+              >
+                <ThemedText style={cliente.cidade ? styles.selectorText : styles.selectorPlaceholder}>
+                  {cliente.cidade || (cliente.estado ? 'Selecione a cidade' : 'Selecione um estado primeiro')}
+                </ThemedText>
+                <ThemedText style={styles.selectorArrow}>▼</ThemedText>
+              </TouchableOpacity>
+            ) : (
+              <View style={[styles.input, styles.inputDisabled]}>
+                <ThemedText style={{ color: '#666', fontSize: 15 }}>
+                  {cliente.cidade || '—'}
+                </ThemedText>
+              </View>
+            )}
+          </View>
         </ScrollView>
+
+        <Modal
+          visible={estadoModalVisible}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setEstadoModalVisible(false)}
+        >
+          <TouchableOpacity
+            style={styles.modalOverlay}
+            activeOpacity={1}
+            onPress={() => setEstadoModalVisible(false)}
+          >
+            <View style={styles.modalContainer} onStartShouldSetResponder={() => true}>
+              <View style={styles.modalHeader}>
+                <ThemedText style={styles.modalTitle}>Selecione o Estado</ThemedText>
+                <TouchableOpacity onPress={() => setEstadoModalVisible(false)}>
+                  <ThemedText style={styles.modalClose}>✕</ThemedText>
+                </TouchableOpacity>
+              </View>
+              <ScrollView contentContainerStyle={styles.estadosGrid}>
+                {ESTADOS_BRASIL.map((uf) => (
+                  <TouchableOpacity
+                    key={uf}
+                    style={[
+                      styles.estadoButton,
+                      cliente.estado === uf && styles.estadoButtonSelected,
+                    ]}
+                    onPress={() => {
+                      setCliente((prev) => ({
+                        ...prev,
+                        estado: uf,
+                        cidade: prev.estado === uf ? prev.cidade : '',
+                      }));
+                      setCidadeSearch('');
+                      setEstadoModalVisible(false);
+                    }}
+                  >
+                    <ThemedText
+                      style={[
+                        styles.estadoButtonText,
+                        cliente.estado === uf && styles.estadoButtonTextSelected,
+                      ]}
+                    >
+                      {uf}
+                    </ThemedText>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          </TouchableOpacity>
+        </Modal>
+
+        <Modal
+          visible={cidadeModalVisible}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setCidadeModalVisible(false)}
+        >
+          <TouchableOpacity
+            style={styles.modalOverlay}
+            activeOpacity={1}
+            onPress={() => setCidadeModalVisible(false)}
+          >
+            <View style={styles.modalContainer} onStartShouldSetResponder={() => true}>
+              <View style={styles.modalHeader}>
+                <ThemedText style={styles.modalTitle}>Selecione a Cidade</ThemedText>
+                <TouchableOpacity onPress={() => setCidadeModalVisible(false)}>
+                  <ThemedText style={styles.modalClose}>✕</ThemedText>
+                </TouchableOpacity>
+              </View>
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Pesquisar cidade"
+                placeholderTextColor="#999"
+                value={cidadeSearch}
+                onChangeText={setCidadeSearch}
+                autoCapitalize="words"
+              />
+
+              <FlatList
+                data={cidadesFiltradas}
+                keyExtractor={(item) => item}
+                style={styles.cityList}
+                keyboardShouldPersistTaps="handled"
+                ListEmptyComponent={
+                  <View style={styles.cityStatusContainer}>
+                    <ThemedText style={styles.cityStatusText}>Nenhuma cidade encontrada.</ThemedText>
+                  </View>
+                }
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={[
+                      styles.cityListItem,
+                      cliente.cidade === item && styles.cityListItemSelected,
+                    ]}
+                    onPress={() => {
+                      setCliente((prev) => ({ ...prev, cidade: item }));
+                      setCidadeModalVisible(false);
+                    }}
+                  >
+                    <ThemedText
+                      style={[
+                        styles.cityListItemText,
+                        cliente.cidade === item && styles.cityListItemTextSelected,
+                      ]}
+                    >
+                      {item}
+                    </ThemedText>
+                  </TouchableOpacity>
+                )}
+              />
+            </View>
+          </TouchableOpacity>
+        </Modal>
 
         <View style={[styles.buttonGroup, { paddingBottom: insets.bottom + 20 }]}>
           {loading && (
@@ -392,5 +603,136 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#333',
+  },
+  selectorInput: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: '#fff',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  selectorInputDisabled: {
+    backgroundColor: '#f5f5f5',
+    borderColor: '#ddd',
+  },
+  selectorText: {
+    fontSize: 15,
+    color: '#333',
+  },
+  selectorPlaceholder: {
+    fontSize: 15,
+    color: '#999',
+  },
+  selectorArrow: {
+    fontSize: 12,
+    color: '#666',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContainer: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingHorizontal: 16,
+    paddingBottom: 32,
+    maxHeight: '80%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  modalClose: {
+    fontSize: 18,
+    color: '#666',
+    paddingHorizontal: 8,
+  },
+  estadosGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingTop: 12,
+    gap: 8,
+    paddingBottom: 16,
+  },
+  estadoButton: {
+    width: '22%',
+    paddingVertical: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    alignItems: 'center',
+    backgroundColor: '#f8f8f8',
+  },
+  estadoButtonSelected: {
+    backgroundColor: BrandColors.primary,
+    borderColor: BrandColors.primary,
+  },
+  estadoButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+  },
+  estadoButtonTextSelected: {
+    color: '#000',
+  },
+  searchInput: {
+    marginTop: 12,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 15,
+    color: '#333',
+    backgroundColor: '#fff',
+  },
+  cityList: {
+    maxHeight: 420,
+  },
+  cityListItem: {
+    borderWidth: 1,
+    borderColor: '#eee',
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    marginBottom: 8,
+    backgroundColor: '#fafafa',
+  },
+  cityListItemSelected: {
+    borderColor: BrandColors.primary,
+    backgroundColor: '#fff8cf',
+  },
+  cityListItemText: {
+    fontSize: 15,
+    color: '#333',
+  },
+  cityListItemTextSelected: {
+    color: '#000',
+    fontWeight: '600',
+  },
+  cityStatusContainer: {
+    paddingVertical: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  cityStatusText: {
+    color: '#666',
+    fontSize: 14,
   },
 });

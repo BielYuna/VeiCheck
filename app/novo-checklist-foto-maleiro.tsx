@@ -37,25 +37,58 @@ export default function NovoChecklistFotoMaleiroScreen() {
   const photoUri = useMemo(() => photos[4] || '', [photos]);
 
   const handlePickPhoto = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permissão necessária', 'Precisamos de acesso à galeria para selecionar um foto.');
-      return;
-    }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 0.7,
-      allowsEditing: true,
-    });
-
-    if (!result.canceled && result.assets.length > 0) {
-      const uri = result.assets[0].uri;
+    const savePhoto = (uri: string) => {
       setPhotos((prev) => {
         const next = [...prev];
         next[4] = uri;
         return next;
       });
+    };
+
+    const openGallery = async () => {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permissão necessária', 'Precisamos de acesso à galeria para selecionar uma foto.');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 0.7,
+        allowsEditing: true,
+      });
+
+      if (!result.canceled && result.assets.length > 0) {
+        savePhoto(result.assets[0].uri);
+      }
+    };
+
+    const openCamera = async () => {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        return 'unavailable';
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 0.7,
+        allowsEditing: true,
+      });
+
+      if (!result.canceled && result.assets.length > 0) {
+        savePhoto(result.assets[0].uri);
+        return 'captured';
+      }
+
+      return 'canceled';
+    };
+
+    const cameraResult = await openCamera();
+    if (cameraResult === 'canceled' || cameraResult === 'unavailable') {
+      Alert.alert('Usar galeria', 'Deseja selecionar uma foto da galeria?', [
+        { text: 'Abrir galeria', onPress: () => void openGallery() },
+        { text: 'Cancelar', style: 'cancel' },
+      ]);
     }
   };
 
@@ -87,7 +120,7 @@ export default function NovoChecklistFotoMaleiroScreen() {
   return (
     <ThemedView style={[styles.container, { paddingTop: insets.top }]}> 
       <View style={styles.progressBarContainer}>
-        <View style={[styles.progressBar, { width: '100%', backgroundColor: '#51eb7c' }]} />
+        <View style={[styles.progressBar, { width: '72%', backgroundColor: '#51eb7c' }]} />
       </View>
 
       <Animated.View

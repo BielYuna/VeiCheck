@@ -2,6 +2,7 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { BrandColors } from '@/constants/theme';
+import { adicionarChecklistHistorico } from '@/utils/checklistsStorage';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Print from 'expo-print';
 import { useRouter } from 'expo-router';
@@ -19,11 +20,13 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAuth } from './context/AuthContext';
 import { ChecklistContext } from './context/ChecklistContext';
 
 export default function NovoChecklistFinalScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
   const {
     cliente,
     veiculo,
@@ -65,12 +68,18 @@ export default function NovoChecklistFinalScreen() {
   }, [fadeinAnim, slideAnim]);
 
   useEffect(() => {
-    // Ao selecionar "Cliente" como local de entrega, preenche o campo com o endereço do cliente
-    // mas permite editar caso esteja vazio ou precise de correção.
-    if (localEntregaTipo === 'cliente' && !localEntrega) {
-      setLocalEntrega(cliente?.endereco ?? '');
+    if (localEntregaTipo === 'cliente') {
+      const enderecoCompletoCliente = [
+        cliente?.endereco?.trim(),
+        cliente?.cidade?.trim(),
+        cliente?.estado?.trim(),
+      ]
+        .filter(Boolean)
+        .join(', ');
+
+      setLocalEntrega(enderecoCompletoCliente);
     }
-  }, [localEntregaTipo, cliente, localEntrega, setLocalEntrega]);
+  }, [localEntregaTipo, cliente, setLocalEntrega]);
 
   const hasValidEntrega = useMemo(() => {
     return localEntrega.trim().length > 0;
@@ -188,10 +197,10 @@ export default function NovoChecklistFinalScreen() {
     const motoristaHtml = `
       <div class="info-box">
         <h3>Motorista</h3>
-        <div class="info-item"><span class="info-label">Nome:</span> <span class="info-value">-</span></div>
-        <div class="info-item"><span class="info-label">CNH:</span> <span class="info-value">-</span></div>
-        <div class="info-item"><span class="info-label">Telefone:</span> <span class="info-value">-</span></div>
-        <div class="info-item"><span class="info-label">Dados:</span> <span class="info-value">Dados do motorista serão preenchidos no cadastro.</span></div>
+        <div class="info-item"><span class="info-label">Nome:</span> <span class="info-value">${safe(user?.nome) || '-'}</span></div>
+        <div class="info-item"><span class="info-label">CNH/CPF:</span> <span class="info-value">${safe(user?.cpfCnpj) || '-'}</span></div>
+        <div class="info-item"><span class="info-label">Telefone:</span> <span class="info-value">${safe(user?.telefone) || '-'}</span></div>
+        <div class="info-item"><span class="info-label">Endereço:</span> <span class="info-value">${safe(user?.endereco) || '-'}</span></div>
       </div>
     `;
 
@@ -449,13 +458,26 @@ export default function NovoChecklistFinalScreen() {
     `;
   };
 
-  const generatePdfAndShare = async () => {
+  const generatePdfAndShare = async (): Promise<string | null> => {
     try {
       const html = await buildReportHtml();
       const { uri } = await Print.printToFileAsync({ html });
 
+      const baseDir = `${FileSystem.documentDirectory}checklists`;
+      const targetUri = `${baseDir}/checklist-${Date.now()}.pdf`;
+
+      try {
+        const dirInfo = await FileSystem.getInfoAsync(baseDir);
+        if (!dirInfo.exists) {
+          await FileSystem.makeDirectoryAsync(baseDir, { intermediates: true });
+        }
+        await FileSystem.copyAsync({ from: uri, to: targetUri });
+      } catch (copyError) {
+        console.error('Erro ao salvar PDF no histórico:', copyError);
+      }
+
       if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(uri, {
+        await Sharing.shareAsync(targetUri, {
           mimeType: 'application/pdf',
           dialogTitle: 'Compartilhar relatório',
           UTI: 'com.adobe.pdf',
@@ -463,9 +485,12 @@ export default function NovoChecklistFinalScreen() {
       } else {
         Alert.alert('Aviso', 'Não foi possível compartilhar o PDF neste dispositivo.');
       }
+
+      return targetUri;
     } catch (error) {
       console.error('Erro ao gerar PDF', error);
       Alert.alert('Erro', 'Não foi possível gerar o relatório em PDF.');
+      return null;
     }
   };
 
@@ -480,7 +505,29 @@ export default function NovoChecklistFinalScreen() {
       return;
     }
 
-    await generatePdfAndShare();
+    const veiculoDescricao = veiculo
+      ? `${veiculo.marca} ${veiculo.modelo} (${veiculo.ano ?? '-'})`
+      : '-';
+
+    const motivoDescricao = [motivo, motivoEspecifico, motivoTraseira, motivoEspecificoTraseira]
+      .filter((item) => !!item && item.trim().length > 0)
+      .join(' | ') || '-';
+
+    const pdfUri = await generatePdfAndShare();
+
+    try {
+      await adicionarChecklistHistorico({
+        clienteNome: cliente?.nome?.trim() || '-',
+        motoristaNome: user?.nome?.trim() || '-',
+        veiculo: veiculoDescricao,
+        placa: placa?.trim() || '-',
+        motivo: motivoDescricao,
+        localEntrega: localEntrega?.trim() || '-',
+        pdfUri: pdfUri ?? undefined,
+      });
+    } catch (error) {
+      console.error('Erro ao salvar checklist no histórico:', error);
+    }
 
     // Pode ser expandido para salvar / enviar dados.
     router.push('/');
@@ -574,8 +621,16 @@ export default function NovoChecklistFinalScreen() {
                   localEntregaTipo === 'cliente' && styles.radioOptionActive,
                 ]}
                 onPress={() => {
+                  const enderecoCompletoCliente = [
+                    cliente?.endereco?.trim(),
+                    cliente?.cidade?.trim(),
+                    cliente?.estado?.trim(),
+                  ]
+                    .filter(Boolean)
+                    .join(', ');
+
                   setLocalEntregaTipo('cliente');
-                  setLocalEntrega(cliente?.endereco ?? '');
+                  setLocalEntrega(enderecoCompletoCliente);
                 }}>
                 <ThemedText
                   style={[
@@ -605,7 +660,7 @@ export default function NovoChecklistFinalScreen() {
               style={[styles.textInput, localEntregaTipo === 'cliente' && styles.textInputDisabled]}
               value={localEntrega}
               onChangeText={setLocalEntrega}
-              editable
+              editable={localEntregaTipo === 'outro'}
               placeholder="Endereço de entrega"
               multiline
               textAlignVertical="top"
